@@ -1,0 +1,6 @@
+IMAGE_SIZE = 128
+NUM_CLASSES = 33
+BATCH_SIZE = 10
+
+DATA_ROOT = "data"
+DEVICE = "cuda"

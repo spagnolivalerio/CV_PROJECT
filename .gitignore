@@ -1,0 +1,9 @@
+*.pt
+*.pth
+
+*.png
+*.json
+*.jpg
+
+__pycache__/
+**/__pycache__/

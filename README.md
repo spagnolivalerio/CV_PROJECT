@@ -1,2 +1,3 @@
-# CV_PROJECT
-Dental xrays generation with GAN and DIFFUSION models, segmentation task.
+# computer vision project
+## DENTAL X-RAY IMAGES GENERATION AND SEGMENTATION
+### Done by Spagnoli Valerio 1973484
