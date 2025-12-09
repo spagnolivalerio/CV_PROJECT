@@ -41,10 +41,13 @@ class Diffusion(nn.Module):
     # Tensor element wise product rule: all dimensions match or someone is 1: 
     # alpha_bar[t] has shape [B, 1, 1, 1], the batch has shape [B, C, H, W].
     # For eache image i in the batch Batch[i, C, H, W], we perform scalar product by the scalar
-    # component of alpha_bar[t][i, 1, 1, 1].
+    # component of alpha_bar[t][i, 0, 0, 0].
     def q_sample(self, x0, t): # t has shape [B]
         """
-        Used in the training loop to generate the noised image
+        Used in the training loop to generate the noised image.
+        Explicitly assumes `t` is provided per-sample (shape [B]): each image in the batch
+        can use a different timestep, so we index alpha_bar with a vector and broadcast it
+        (the operation of align the dimensions among tensors)
         """
         # Noise creation
         eps = torch.randn_like(x0)
@@ -56,7 +59,7 @@ class Diffusion(nn.Module):
 
     # Loss function
     def loss(self, x0, t): # Shape x0: [B, C, H, W], t: [B]
-        
+
         # Produce the noised image at timestep 't' through the diffusion process 
         x_t, eps = self.q_sample(x0, t)
         noise_pred = self.model(x_t, t).sample # sample is a function of UNet2DModel istance
@@ -68,6 +71,9 @@ class Diffusion(nn.Module):
     @torch.no_grad()
     def sample_image(self, n_samples):
 
+        """
+        Used in the sampler function to generate an arbitrary number of samples.
+        """
         self.model.eval()
 
         # Generate the normal noise N(0,1) to start the reverse process of shape [B, C, H, W]
@@ -76,10 +82,12 @@ class Diffusion(nn.Module):
         for t in reversed(range(self.timesteps)):
 
             # Create an array [t, t, ..., t] of shape n_samples (B)
+            # Here we assume a single timestep shared across the batch at this loop iteration
+            # (scalar t), then expand it to per-sample vector because the UNet expects a t per sample.
             t_vector = torch.ones(n_samples, device=self.device, dtype=torch.long) * t
             betas_t = self.betas[t]
             alphas_t = self.alphas[t]
-            alphas_bar_t = self.alpha_bars[t]
+            alphas_bar_t = self.alphas_bar[t]
 
             noise_pred = self.model(x, t_vector).sample
             noise = torch.randn_like(x) if t > 0 else 0
@@ -138,4 +146,3 @@ class EMA:
         for name, param in self.model.named_parameters():
             if param.requires_grad:
                 param.data = self.backup[name]
-

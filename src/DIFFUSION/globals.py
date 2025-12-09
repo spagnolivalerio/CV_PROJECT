@@ -5,6 +5,7 @@ BATCH_SIZE = 16
 DEVICE = "cuda" 
 DATA_ROOT = "data"
 DATA_PATH = "data/train/xrays"
+CHECKPOINTS_ROOT = "checkpoints"
 
 # Diffusion model parameters
 BETA_START = 1e-4
