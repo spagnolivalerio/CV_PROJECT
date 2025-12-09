@@ -1,9 +1,7 @@
 import torch
 from torch import nn
 from globals import Z_DIM, OUT_CHANNELS, G_CHANNELS, C_CHANNELS, DEVICE, LAMBDA
-
-def gradient_penalty():
-    return 0
+from utils import gradient_penalty
 
 def gBlock(in_ch, out_ch, norm_layer=nn.BatchNorm2d):
     return nn.Sequential(
@@ -50,7 +48,23 @@ class Generator(nn.Module):
 
         zetas = torch.randn(n_samples, self.z_dim, device=self.device)
         return self(zetas)
+    
+    def train_on_batch(self, C, batch_size, generator_optimizer):
+
+        device = next(self.parameters()).device
+        z = torch.randn(batch_size, self.z_dim, device=device)
+        fake = self(z)
+        critic_score = C(fake)
+        generator_loss = - critic_score.mean()
+
+        generator_optimizer.zero_grad()
+        generator_loss.backward()
+        generator_optimizer.step()
+
+        return generator_loss.item()
       
+# -------------------------------------------------------------------- #
+
 def cBlock(in_ch, out_ch):
     return nn.Sequential(
         nn.Conv2d(in_ch, out_ch, 4, 2, 1, bias=False),
@@ -84,7 +98,7 @@ class Critic(nn.Module):
         
         return fake_score - real_score
 
-    def train_on_batch(self, G, critic_steps, batch_size, z_dim, real, critic_optimizer):
+    def train_on_batch(self, G, critic_steps, z_dim, real, critic_optimizer):
         """
         Docstring for train_on_batch
         
@@ -98,21 +112,22 @@ class Critic(nn.Module):
         """
         total_loss = 0.0
 
-        for _ in range(critic_steps):
+        real_batch = real.size(0)
 
-            z = torch.randn(batch_size, z_dim, 1, 1, device=self.device) # Shape [B, z_dim, 1, 1]
-            fake_out = G(z)
+        for _ in range(critic_steps):
+            
+            z = torch.randn(real_batch, z_dim, device=self.device) # [B, z_dim]
+            fake_out = G(z).detach() # We don't want to train the Generator
 
             wass_comp = self.wasserstein_component(fake_out, real)
             loss = wass_comp + LAMBDA * gradient_penalty(self, real, fake_out)
 
             critic_optimizer.zero_grad()
-            loss.backword()
+            loss.backward()
             critic_optimizer.step()
 
             total_loss += loss.item()
         
         return total_loss / critic_steps
-
 
 

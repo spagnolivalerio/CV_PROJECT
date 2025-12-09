@@ -15,7 +15,11 @@ crop = transforms.Compose([
 crop_and_normalize = transforms.Compose([
     crop,
     transforms.Grayscale(num_output_channels=1),
-    transforms.Normalize(mean=[0.5], std=[0.5])
+    transforms.Normalize(mean=[0.5], std=[0.5]) # [] because it requires a list of values for each channel
+])
+
+unnormalize = transforms.Compose([
+    transforms.Normalize(mean=[-1], std=[2])
 ])
 
 # Gradient penalty of WGAN
@@ -47,11 +51,11 @@ def gradient_penalty(critic, real, fake, device=DEVICE):
 
     return gp 
 
-def show(image, channels=1, image_size=IMAGE_SIZE, num_images=16):
+def show(images):
 
-    data = image.detach().cpu().view(-1, channels, image_size, image_size)
-    grid = make_grid(data[:num_images], nrow=4).permute(1, 2, 0)
+    data = images.detach().cpu()
+    data = unnormalize(data)
+    grid = make_grid(data, nrow=4).permute(1, 2, 0).numpy()
     plt.imshow(grid)
+    plt.axis("off")
     plt.show()
-
-    
