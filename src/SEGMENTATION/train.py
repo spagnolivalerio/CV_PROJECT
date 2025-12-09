@@ -14,7 +14,7 @@ VAL_MASKS_DIR   = DATA_ROOT + "/validation_set/masks"
 
 NUM_EPOCHS   = 100
 LR           = 1e-4
-SHOW_EVERY   = 10
+PRINT_EVERY   = 10
 WEIGHTS_DIR  = "weights"
 
 os.makedirs(WEIGHTS_DIR, exist_ok=True)
@@ -62,7 +62,7 @@ for epoch in range(NUM_EPOCHS):
         running_loss += loss.item()
 
         # Showing training process
-        if i % SHOW_EVERY == 0:
+        if i % PRINT_EVERY == 0:
             print(f"[Epoch {epoch}] Batch {i}/{len(train_loader)} - Train Loss: {loss.item():.4f}")
 
     train_loss = running_loss / len(train_loader)

@@ -2,10 +2,11 @@ from diffusers import UNet2DModel
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from globals import IMAGE_SIZE, TIME_STEPS
+from globals import IMAGE_SIZE, TIME_STEPS, DEVICE, BETA_START, BETA_END
 
 class Diffusion(nn.Module):
-    def __init__(self, image_size=IMAGE_SIZE, timesteps=TIME_STEPS, beta_start=1e-4, beta_end=0.02, device="cuda"):
+    def __init__(self, image_size=IMAGE_SIZE, timesteps=TIME_STEPS, beta_start=BETA_START, beta_end=BETA_END, device=DEVICE):
+
         super().__init__()
         self.device = device
         self.image_size = image_size
@@ -20,45 +21,73 @@ class Diffusion(nn.Module):
             down_block_types=("DownBlock2D", "AttnDownBlock2D", "DownBlock2D"),
             up_block_types=("UpBlock2D", "AttnUpBlock2D", "UpBlock2D"),
         ).to(device)
-
-        # Noise scheduler
-        self.betas = torch.linspace(beta_start, beta_end, timesteps, device=device)
+        
+        # ---------------------------------- #
+        # --------- Noise scheduler -------- # 
+        # We create a betas array which cointaines the variance that we have to sum
+        # at the noise. betas[t] contains the component at timestep t.
+        self.betas = torch.linspace(beta_start, beta_end, timesteps, device=device) # Shape [T]
         self.alphas = 1.0 - self.betas
-        self.alpha_bars = torch.cumprod(self.alphas, dim=0)
+        self.alphas_bar = torch.cumprod(self.alphas, dim=0) # Shape [T] (Total timesteps)
 
-    # Forward process
-    def q_sample(self, x0, t, noise=None):
-        if noise is None:
-            noise = torch.randn_like(x0)
-        sqrt_alpha_bar = self.alpha_bars[t][:, None, None, None].sqrt() # Broadcast shape
-        sqrt_one_minus_alpha_bar = (1 - self.alpha_bars[t])[:, None, None, None].sqrt()
-        return sqrt_alpha_bar * x0 + sqrt_one_minus_alpha_bar * noise, noise
+    # ----------------------------------- #
+    # --------- Forward process --------- #
+    # For a single image in the batch, we have that x_t[i],the i-th image in the batch adding
+    # noise at timestep t, is -->
+    # x_t[i] = [sqrt(alpha_bar_t[i]) * x0[i]] + [sqrt(1 - alpha_bar_t[i]) * eps]
+    # To produce a single batch, we consider alpha_bar_t as a single vector of shape B
+    # (a component for each image in the batch).
+    # Then, we have to expand it to compute directly the element wise product: 
+    # Tensor element wise product rule: all dimensions match or someone is 1: 
+    # alpha_bar[t] has shape [B, 1, 1, 1], the batch has shape [B, C, H, W].
+    # For eache image i in the batch Batch[i, C, H, W], we perform scalar product by the scalar
+    # component of alpha_bar[t][i, 1, 1, 1].
+    def q_sample(self, x0, t): # t has shape [B]
+        """
+        Used in the training loop to generate the noised image
+        """
+        # Noise creation
+        eps = torch.randn_like(x0)
+
+        # alpha_bars[t], if 't' is a vector, returns all values indexing with values of t
+        sqrt_alphas_bar = self.alphas_bar[t][:, None, None, None].sqrt()
+        sqrt_one_minus_alphas_bar = (1 - self.alphas_bar[t])[:, None, None, None].sqrt()
+        return sqrt_alphas_bar * x0 + sqrt_one_minus_alphas_bar * eps, eps
 
     # Loss function
-    def p_losses(self, x0, t):
-        x_t, noise = self.q_sample(x0, t)
-        noise_pred = self.model(x_t, t).sample
-        loss = F.mse_loss(noise_pred, noise)
+    def loss(self, x0, t): # Shape x0: [B, C, H, W], t: [B]
+        
+        # Produce the noised image at timestep 't' through the diffusion process 
+        x_t, eps = self.q_sample(x0, t)
+        noise_pred = self.model(x_t, t).sample # sample is a function of UNet2DModel istance
+        loss = F.mse_loss(noise_pred, eps)
+
         return loss
 
     # Reverse process
     @torch.no_grad()
-    def sample(self, n_samples):
+    def sample_image(self, n_samples):
+
         self.model.eval()
+
+        # Generate the normal noise N(0,1) to start the reverse process of shape [B, C, H, W]
         x = torch.randn(n_samples, 1, self.image_size, self.image_size, device=self.device)
 
         for t in reversed(range(self.timesteps)):
-            t_tensor = torch.tensor([t] * n_samples, device=self.device).long()
-            beta_t = self.betas[t]
-            alpha_t = self.alphas[t]
-            alpha_bar_t = self.alpha_bars[t]
 
-            noise_pred = self.model(x, t_tensor).sample
+            # Create an array [t, t, ..., t] of shape n_samples (B)
+            t_vector = torch.ones(n_samples, device=self.device, dtype=torch.long) * t
+            betas_t = self.betas[t]
+            alphas_t = self.alphas[t]
+            alphas_bar_t = self.alpha_bars[t]
+
+            noise_pred = self.model(x, t_vector).sample
             noise = torch.randn_like(x) if t > 0 else 0
 
-            coef1 = 1 / torch.sqrt(alpha_t)
-            coef2 = (1 - alpha_t) / torch.sqrt(1 - alpha_bar_t)
-            x = coef1 * (x - coef2 * noise_pred) + torch.sqrt(beta_t) * noise
+            # Following the reverse process from literature
+            coef1 = 1 / torch.sqrt(alphas_t)
+            coef2 = (1 - alphas_t) / torch.sqrt(1 - alphas_bar_t)
+            x = coef1 * (x - coef2 * noise_pred) + torch.sqrt(betas_t) * noise
 
         return x
     

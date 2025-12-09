@@ -91,7 +91,7 @@ if __name__ == "__main__":
 
             # Loss computing and backpropagation
             optimizer.zero_grad()
-            loss = diffusion.p_losses(imgs, t)
+            loss = diffusion.loss(imgs, t)
             loss.backward()
             optimizer.step()
 
@@ -112,7 +112,7 @@ if __name__ == "__main__":
                 diffusion.model.eval()
                 if use_ema:
                     ema.apply_shadow()
-                sample = diffusion.sample(n_samples=1)
+                sample = diffusion.sample_image(n_samples=1)
                 if use_ema:
                     ema.restore()
                 diffusion.model.train()

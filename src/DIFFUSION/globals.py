@@ -6,3 +6,7 @@ DEVICE = "cuda"
 DATA_ROOT = "data"
 DATA_PATH = "data/train/xrays"
 
+# Diffusion model parameters
+BETA_START = 1e-4
+BETA_END = 0.02
+

@@ -43,6 +43,7 @@ with torch.no_grad():
         mask = mask.to(DEVICE)
         pred = model(img)
 
+        # Compute evaluation metrics
         miou = multiclass_iou(pred, mask, NUM_CLASSES)
         mdice = multiclass_dice(pred, mask, NUM_CLASSES)
         precs, recs = multiclass_precision_recall(pred, mask, NUM_CLASSES)

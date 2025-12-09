@@ -3,14 +3,14 @@ import numpy as np
 # Avoid division by 0, stabilizing the division
 EPS = 1e-6
 
-def logits_to_class(preds):
+def reshape_masks_batch(preds):
     # preds shape: (B, C, H, W)
-    # Take highest value on dim=1 => C (highest probability)
-    return preds.argmax(dim=1)
+    # Take highest value on dim=1 --> C (highest probability)
+    return preds.argmax(dim=1) # Shape (B, H, W)
 
 # Multiclass version of the union over intersection
 def multiclass_iou(preds, target, num_classes):
-    preds = logits_to_class(preds)
+    preds = reshape_masks_batch(preds)
 
     ious = []
 
@@ -32,11 +32,13 @@ def multiclass_iou(preds, target, num_classes):
 
 # Multiclass version of dice score
 def multiclass_dice(preds, target, num_classes):
-    preds = logits_to_class(preds)
+    preds = reshape_masks_batch(preds)
 
     dice_scores = []
 
     for c in range(num_classes):
+
+        # Boolean tensor
         current_pred = (preds == c)
         current_target = (target == c)
 
@@ -56,7 +58,7 @@ def multiclass_dice(preds, target, num_classes):
 
 # Multiclass version of precision and recall
 def multiclass_precision_recall(preds, target, num_classes):
-    preds = logits_to_class(preds)
+    preds = reshape_masks_batch(preds)
 
     precisions = []
     recalls = []
@@ -83,7 +85,7 @@ def multiclass_precision_recall(preds, target, num_classes):
 
 # Accuracy
 def pixel_accuracy(preds, target):
-    preds = logits_to_class(preds)
+    preds = reshape_masks_batch(preds)
     correct = (preds == target).sum().item()
     total = preds.numel() # Computes the product of the dimension of the tensor
     return correct / total
