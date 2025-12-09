@@ -24,7 +24,7 @@ if __name__ == "__main__":
     C = Critic().to(DEVICE)
 
     c_optimizer = torch.optim.Adam(C.parameters(), lr=LR, betas=(0.0, 0.9)) # Taken from paper
-    g_optimizer = torch.optim.Adam(G.parameters(), lr=LR)
+    g_optimizer = torch.optim.Adam(G.parameters(), lr=LR, betas=(0.0, 0.9))
 
     dataset = DentalDataset(DATA_PATH)
     dataloader = DataLoader(dataset=dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)

@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from globals import Z_DIM, OUT_CHANNELS, G_CHANNELS, C_CHANNELS, DEVICE, LAMBDA
 from utils import gradient_penalty
+from torch.nn.utils import spectral_norm
 
 def gBlock(in_ch, out_ch, norm_layer=nn.BatchNorm2d):
     return nn.Sequential(
@@ -70,6 +71,12 @@ def cBlock(in_ch, out_ch):
         nn.Conv2d(in_ch, out_ch, 4, 2, 1, bias=False),
         nn.LeakyReLU(inplace=True)
     )
+
+def s_cBlock(in_ch, out_ch):
+    return nn.Sequential(
+        spectral_norm(nn.Conv2d(in_ch, out_ch, 4, 2, 1, bias=False)),
+        nn.LeakyReLU(inplace=True)
+    )
         
 class Critic(nn.Module):
     def __init__(self, start_channels = C_CHANNELS, device = DEVICE):
@@ -77,12 +84,12 @@ class Critic(nn.Module):
 
         self.model = nn.Sequential(
             cBlock(1, start_channels),
-            cBlock(start_channels, start_channels*2),           #64->32
-            cBlock(start_channels*2, start_channels*4),         #32->16
-            cBlock(start_channels*4, start_channels*8),         #16->8
-            cBlock(start_channels*8, start_channels*16),        #8->4
-            cBlock(start_channels*16, start_channels*32),       #4->2
-            nn.Conv2d(start_channels*32, 1, 4, 2, 1)            #2->1
+            cBlock(start_channels, start_channels*2),                                #64->32
+            cBlock(start_channels*2, start_channels*4),                              #32->16
+            cBlock(start_channels*4, start_channels*8),                              #16->8
+            cBlock(start_channels*8, start_channels*16),                           #8->4
+            cBlock(start_channels*16, start_channels*32),                            #16->8
+            nn.Conv2d(start_channels*32, 1, 4, 2, 1)                                 #4->1
         )
 
         self.device = device
@@ -105,13 +112,11 @@ class Critic(nn.Module):
         :param self: the Critic module
         :param G: the generator to generate fake data
         :param critic_steps: number of training steps of teh critic for each generator training step
-        :param batch_size: batch size
         :param z_dim: latent space dimension
         :param real: real image from the dataset
         :param critic_optimizer: the critic optimizer, to perform weights upgrade
         """
         total_loss = 0.0
-
         real_batch = real.size(0)
 
         for _ in range(critic_steps):
