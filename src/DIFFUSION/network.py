@@ -90,6 +90,8 @@ class Diffusion(nn.Module):
             alphas_bar_t = self.alphas_bar[t]
 
             noise_pred = self.model(x, t_vector).sample
+            
+            # Generate a gaussian normal noise
             noise = torch.randn_like(x) if t > 0 else 0
 
             # Following the reverse process from literature
@@ -98,7 +100,8 @@ class Diffusion(nn.Module):
             x = coef1 * (x - coef2 * noise_pred) + torch.sqrt(betas_t) * noise
 
         return x
-    
+
+# https://medium.com/@heyamit10/exponential-moving-average-ema-in-pytorch-eb8b6f1718eb 
 class EMA:
     def __init__(self, model, decay):
         """

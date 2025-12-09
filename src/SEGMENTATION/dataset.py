@@ -24,6 +24,7 @@ class DentalDataset(Dataset):
 
         mask = np.array(Image.open(self.masks_files[index]), dtype=np.uint8)
 
+        # Online augmentation
         if self.augment:
 
             if random.random() < 0.5:

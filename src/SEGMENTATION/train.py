@@ -50,7 +50,10 @@ for epoch in range(NUM_EPOCHS):
     running_loss = 0
 
     for i, (imgs, masks) in enumerate(train_loader):
+        
         imgs  = imgs.to(DEVICE)
+
+        # long type for discrete values mask
         masks = masks.to(DEVICE).long()
 
         optimizer.zero_grad()
