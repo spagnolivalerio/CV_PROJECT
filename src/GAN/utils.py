@@ -2,13 +2,9 @@ import torch.autograd as autograd
 import torch
 import torchvision.transforms as transforms
 from torchvision.utils import make_grid
-import numpy as np
-from PIL import Image, ImageDraw
 from torchvision.transforms import InterpolationMode
-from globals import IMAGE_SIZE
+from globals import IMAGE_SIZE, DEVICE
 import matplotlib.pyplot as plt
-
-IMAGE_SIZE = 128
 
 crop = transforms.Compose([
     transforms.ToTensor(),
@@ -22,20 +18,15 @@ crop_and_normalize = transforms.Compose([
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
-vflip = transforms.functional.vflip
+# Gradient penalty of WGAN
+def gradient_penalty(critic, real, fake, device=DEVICE):
 
-rotate_right = transforms.RandomRotation(degrees=(45, 45))
-
-rotate_left = transforms.RandomRotation(degrees=(-45, -45))
-
-# Gradient penalty of PANO-WGAN
-def gradient_penalty(critic, real, fake, device="cuda"):
-
-    batch_size, C, H, W = real.shape
-    epsilon = torch.rand(batch_size, 1, 1, 1, device=device, requires_grad=True)
+    batch_size = real.shape[0]
+    epsilon = torch.rand(batch_size, 1, 1, 1, device=device)
 
     real_fake_blend = epsilon * real + (1 - epsilon) * fake
     real_fake_blend = real_fake_blend.to(device)
+    real_fake_blend.requires_grad_(True)
 
     mixed_scores = critic.forward(real_fake_blend)
 
@@ -50,14 +41,14 @@ def gradient_penalty(critic, real, fake, device="cuda"):
     )[0]  # shape (B, C, H, W)
 
     gradients = gradients.view(batch_size, -1)        # (B, C*H*W)
-    grad_norm = gradients.norm(2, dim=1)              # (B,)
+    grad_norm = gradients.norm(2, dim=1)              # (B)
 
     gp = torch.mean((grad_norm - 1) ** 2)
 
     return gp 
 
 def show(image, channels=1, image_size=IMAGE_SIZE, num_images=16):
-    
+
     data = image.detach().cpu().view(-1, channels, image_size, image_size)
     grid = make_grid(data[:num_images], nrow=4).permute(1, 2, 0)
     plt.imshow(grid)

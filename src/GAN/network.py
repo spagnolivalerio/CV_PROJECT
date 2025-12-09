@@ -1,7 +1,9 @@
 import torch
 from torch import nn
+from globals import Z_DIM, OUT_CHANNELS, G_CHANNELS, C_CHANNELS, DEVICE, LAMBDA
 
-from globals import Z_DIM, OUT_CHANNELS, G_CHANNELS, C_CHANNELS, DEVICE
+def gradient_penalty():
+    return 0
 
 def gBlock(in_ch, out_ch, norm_layer=nn.BatchNorm2d):
     return nn.Sequential(
@@ -52,17 +54,15 @@ class Generator(nn.Module):
 def cBlock(in_ch, out_ch):
     return nn.Sequential(
         nn.Conv2d(in_ch, out_ch, 4, 2, 1, bias=False),
-        nn.InstanceNorm2d(out_ch),
         nn.LeakyReLU(inplace=True)
     )
         
 class Critic(nn.Module):
-    def __init__(self, start_channels = C_CHANNELS):
+    def __init__(self, start_channels = C_CHANNELS, device = DEVICE):
         super().__init__()
 
         self.model = nn.Sequential(
-            nn.Conv2d(1, start_channels, 4, 2, 1, bias=False),  #128->64
-            nn.LeakyReLU(inplace=True),
+            cBlock(1, start_channels),
             cBlock(start_channels, start_channels*2),           #64->32
             cBlock(start_channels*2, start_channels*4),         #32->16
             cBlock(start_channels*4, start_channels*8),         #16->8
@@ -70,9 +70,49 @@ class Critic(nn.Module):
             cBlock(start_channels*16, start_channels*32),       #4->2
             nn.Conv2d(start_channels*32, 1, 4, 2, 1)            #2->1
         )
+
+        self.device = device
     
     def forward(self, img):
         out = self.model(img) # Shape [B, 1, 1, 1]
         return out.view(out.size(0)) # Shape [B]
+    
+    def wasserstein_component(self, fake, real):
+
+        fake_score = self(fake).mean()
+        real_score = self(real).mean()
+        
+        return fake_score - real_score
+
+    def train_on_batch(self, G, critic_steps, batch_size, z_dim, real, critic_optimizer):
+        """
+        Docstring for train_on_batch
+        
+        :param self: the Critic module
+        :param G: the generator to generate fake data
+        :param critic_steps: number of training steps of teh critic for each generator training step
+        :param batch_size: batch size
+        :param z_dim: latent space dimension
+        :param real: real image from the dataset
+        :param critic_optimizer: the critic optimizer, to perform weights upgrade
+        """
+        total_loss = 0.0
+
+        for _ in range(critic_steps):
+
+            z = torch.randn(batch_size, z_dim, 1, 1, device=self.device) # Shape [B, z_dim, 1, 1]
+            fake_out = G(z)
+
+            wass_comp = self.wasserstein_component(fake_out, real)
+            loss = wass_comp + LAMBDA * gradient_penalty(self, real, fake_out)
+
+            critic_optimizer.zero_grad()
+            loss.backword()
+            critic_optimizer.step()
+
+            total_loss += loss.item()
+        
+        return total_loss / critic_steps
+
 
 
