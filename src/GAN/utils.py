@@ -1,9 +1,12 @@
 import torch.autograd as autograd
 import torch
 import torchvision.transforms as transforms
+from torchvision.utils import make_grid
 import numpy as np
 from PIL import Image, ImageDraw
 from torchvision.transforms import InterpolationMode
+from globals import IMAGE_SIZE
+import matplotlib.pyplot as plt
 
 IMAGE_SIZE = 128
 
@@ -53,19 +56,11 @@ def gradient_penalty(critic, real, fake, device="cuda"):
 
     return gp 
 
-# Compute masks starting from vertexes of polygons
-def compute_masks(img, anns):
-
-    mask = Image.new("L", img.size, 0)
-    draw = ImageDraw.Draw(mask)
-    for ann in anns:
-        for seg in ann["segmentation"]:
-            polygon = [(seg[i], seg[i+1]) for i in range(0, len(seg), 2)]
-            draw.polygon(polygon, outline=255, fill=255)
-        
-    mask = np.array(mask)
-
-    return mask
-
+def show(image, channels=1, image_size=IMAGE_SIZE, num_images=16):
+    
+    data = image.detach().cpu().view(-1, channels, image_size, image_size)
+    grid = make_grid(data[:num_images], nrow=4).permute(1, 2, 0)
+    plt.imshow(grid)
+    plt.show()
 
     

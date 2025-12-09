@@ -1,5 +1,5 @@
 import torch
-from models.gan import Generator
+from network import Generator
 import torchvision.utils as vutils
 import os
 

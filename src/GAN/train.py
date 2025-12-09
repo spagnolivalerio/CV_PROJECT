@@ -2,7 +2,7 @@ import torch
 import torch.optim as optim
 from dataset import DentalDataset
 from torch.utils.data import DataLoader
-from models.gan import Generator, Critic
+from network import Generator, Critic
 import torchvision.utils as vutils
 
 

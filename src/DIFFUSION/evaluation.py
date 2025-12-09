@@ -7,5 +7,5 @@ CONVERT_IMAGES = True
 
 if __name__ == "__main__":
 
-    # compute_clean_FID(REAL_DIR, FAKE_DIR, CONVERT_IMAGES)
+    compute_clean_FID(REAL_DIR, FAKE_DIR, CONVERT_IMAGES)
     compute_IS(REAL_DIR, FAKE_DIR)
