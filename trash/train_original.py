@@ -2,11 +2,11 @@ import torch
 import torch.optim as optim
 from dataset import DentalDataset
 from torch.utils.data import DataLoader
-from network import Generator, Critic
+from network_original import Generator, Critic
 import torchvision.utils as vutils
 
 
-DATA_ROOT= "../../data/train/xrays"
+DATA_ROOT= "../DIFFUSION/data/train/xrays"
 BATCH_SIZE = 16
 workers = 2
 z_dim = 256
@@ -55,9 +55,9 @@ for epoch in range(EPOCHS):
 
     with torch.no_grad():
         fake_images = gen(torch.randn(5, z_dim, 1, 1, device=device)).detach().cpu()
-        vutils.save_image(fake_images, f"synimages/fake_{epoch}.png", normalize=True, nrow=5)
+        vutils.save_image(fake_images, f"outputs/try/fake_{epoch}.png", normalize=True, nrow=5)
 
     print(f"\nEpoch {epoch} completed.\n")
 
-torch.save(gen.state_dict(), "weights/generator3_(1000epochs).pt")
+torch.save(gen.state_dict(), "weights/generator_try_(1000epochs).pt")
 

@@ -1,2 +1,0 @@
-gen_lr = crit_lr: 1e-4
-epochs: 200

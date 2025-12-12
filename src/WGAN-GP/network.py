@@ -2,7 +2,6 @@ import torch
 from torch import nn
 from globals import Z_DIM, OUT_CHANNELS, G_CHANNELS, C_CHANNELS, DEVICE, LAMBDA
 from utils import gradient_penalty
-from torch.nn.utils import spectral_norm
 
 def gBlock(in_ch, out_ch, norm_layer=nn.BatchNorm2d):
     return nn.Sequential(
@@ -25,9 +24,8 @@ class Generator(nn.Module):
             gBlock(start_channels // 2,  start_channels // 4),   # 8->16
             gBlock(start_channels // 4,  start_channels // 8),   # 16->32
             gBlock(start_channels // 8,  start_channels // 16),  # 32->64
-            gBlock(start_channels // 16, start_channels // 32),  # 64->128
 
-            nn.ConvTranspose2d(start_channels // 32, out_channels, 3, 1, 1, bias=False), 
+            nn.ConvTranspose2d(start_channels // 16, out_channels, 4, 2, 1, bias=False), #64->128
             nn.Tanh()
         )
 
@@ -69,13 +67,7 @@ class Generator(nn.Module):
 def cBlock(in_ch, out_ch):
     return nn.Sequential(
         nn.Conv2d(in_ch, out_ch, 4, 2, 1, bias=False),
-        nn.LeakyReLU(inplace=True)
-    )
-
-def s_cBlock(in_ch, out_ch):
-    return nn.Sequential(
-        spectral_norm(nn.Conv2d(in_ch, out_ch, 4, 2, 1, bias=False)),
-        nn.LeakyReLU(inplace=True)
+        nn.LeakyReLU(0.2, inplace=True)
     )
         
 class Critic(nn.Module):
@@ -83,13 +75,12 @@ class Critic(nn.Module):
         super().__init__()
 
         self.model = nn.Sequential(
-            cBlock(1, start_channels),
-            cBlock(start_channels, start_channels*2),                                #64->32
-            cBlock(start_channels*2, start_channels*4),                              #32->16
-            cBlock(start_channels*4, start_channels*8),                              #16->8
-            cBlock(start_channels*8, start_channels*16),                           #8->4
-            cBlock(start_channels*16, start_channels*32),                            #16->8
-            nn.Conv2d(start_channels*32, 1, 4, 2, 1)                                 #4->1
+            cBlock(1, start_channels), 
+            cBlock(start_channels, start_channels*2),                                #128->256
+            cBlock(start_channels*2, start_channels*4),                              #256->512
+            cBlock(start_channels*4, start_channels*8),                              #512->1024
+            cBlock(start_channels*8, start_channels*16),                             #1024->2048
+            nn.Conv2d(start_channels*16, 1, 4, 1, 0)                                 #2048->1
         )
 
         self.device = device
@@ -100,10 +91,10 @@ class Critic(nn.Module):
     
     def wasserstein_component(self, fake, real):
 
-        fake_score = self(fake).mean()
+        fake_score = self(fake.detach()).mean()
         real_score = self(real).mean()
         
-        return fake_score - real_score
+        return fake_score - real_score, fake_score, real_score
 
     def train_on_batch(self, G, critic_steps, z_dim, real, critic_optimizer):
         """
@@ -117,22 +108,23 @@ class Critic(nn.Module):
         :param critic_optimizer: the critic optimizer, to perform weights upgrade
         """
         total_loss = 0.0
+        total_gp = 0.0
         real_batch = real.size(0)
 
         for _ in range(critic_steps):
             
             z = torch.randn(real_batch, z_dim, device=self.device) # [B, z_dim]
-            fake_out = G(z).detach() # We don't want to train the Generator
+            fake_out = G(z) 
 
-            wass_comp = self.wasserstein_component(fake_out, real)
-            loss = wass_comp + LAMBDA * gradient_penalty(self, real, fake_out)
-
+            wass_comp, fake_score, real_score = self.wasserstein_component(fake_out, real)
+            gp = gradient_penalty(self, real, fake_out.detach())
+            loss = wass_comp + LAMBDA * gp
             critic_optimizer.zero_grad()
             loss.backward()
             critic_optimizer.step()
 
             total_loss += loss.item()
+            total_gp += gp.item()
         
-        return total_loss / critic_steps
-
+        return total_loss / critic_steps, total_gp / critic_steps, fake_score.item(), real_score.item()
 

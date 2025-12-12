@@ -18,8 +18,16 @@ crop_and_normalize = transforms.Compose([
     transforms.Normalize(mean=[0.5], std=[0.5]) # [] because it requires a list of values for each channel
 ])
 
+
 unnormalize = transforms.Compose([
     transforms.Normalize(mean=[-1], std=[2])
+])
+
+
+# Same output format, without normalization
+crop_and_resize = transforms.Compose([
+    crop_and_normalize, 
+    unnormalize
 ])
 
 # Gradient penalty of WGAN
