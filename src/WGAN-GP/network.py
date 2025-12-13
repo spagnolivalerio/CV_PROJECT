@@ -24,8 +24,9 @@ class Generator(nn.Module):
             gBlock(start_channels // 2,  start_channels // 4),   # 8->16
             gBlock(start_channels // 4,  start_channels // 8),   # 16->32
             gBlock(start_channels // 8,  start_channels // 16),  # 32->64
+            gBlock(start_channels // 16,  start_channels // 32),  # 64->128
 
-            nn.ConvTranspose2d(start_channels // 16, out_channels, 4, 2, 1, bias=False), #64->128
+            nn.ConvTranspose2d(start_channels // 32, out_channels, 4, 2, 1, bias=False), #128->256
             nn.Tanh()
         )
 
@@ -69,18 +70,26 @@ def cBlock(in_ch, out_ch):
         nn.Conv2d(in_ch, out_ch, 4, 2, 1, bias=False),
         nn.LeakyReLU(0.2, inplace=True)
     )
+
+def i_cBlock(in_ch, out_ch):
+    return nn.Sequential(
+        nn.Conv2d(in_ch, out_ch, 4, 2, 1, bias=False),
+        nn.InstanceNorm2d(out_ch),
+        nn.LeakyReLU(0.2, inplace=True)
+    )
         
 class Critic(nn.Module):
     def __init__(self, start_channels = C_CHANNELS, device = DEVICE):
         super().__init__()
 
         self.model = nn.Sequential(
-            cBlock(1, start_channels), 
-            cBlock(start_channels, start_channels*2),                                #128->256
-            cBlock(start_channels*2, start_channels*4),                              #256->512
-            cBlock(start_channels*4, start_channels*8),                              #512->1024
-            cBlock(start_channels*8, start_channels*16),                             #1024->2048
-            nn.Conv2d(start_channels*16, 1, 4, 1, 0)                                 #2048->1
+            i_cBlock(1, start_channels), 
+            i_cBlock(start_channels, start_channels*2),                                #128->256
+            i_cBlock(start_channels*2, start_channels*4),                              #256->512
+            i_cBlock(start_channels*4, start_channels*8),                              #512->1024
+            i_cBlock(start_channels*8, start_channels*16),                             #1024->2048
+            i_cBlock(start_channels*16, start_channels*32),                             #1024->2048
+            nn.Conv2d(start_channels*32, 1, 4, 1, 0)                                   #2048->1
         )
 
         self.device = device

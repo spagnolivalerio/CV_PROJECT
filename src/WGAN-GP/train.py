@@ -15,7 +15,7 @@ CRITIC_STEPS = 3
 SAVE_EVERY = 10
 WEIGHTS_PATH = "weights"
 
-SAMPLES_PATH = os.path.join("outputs", "runtime", f"G{G_CHANNELS}_C{C_CHANNELS}_Z{Z_DIM}")
+SAMPLES_PATH = os.path.join("data", "outputs", "runtime", f"G{G_CHANNELS}_C{C_CHANNELS}_Z{Z_DIM}")
 
 if __name__ == "__main__":
     
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         # Sample and save a grid of generated images every epoch
         with torch.no_grad():
             G.eval()
-            z = torch.randn(16, Z_DIM, device=C.device)
+            z = torch.randn(4, Z_DIM, device=C.device)
             samples = G(z)
             samples = unnormalize(samples).clamp(0, 1)
             save_image(samples, os.path.join(SAMPLES_PATH, f"samples_epoch_{e+1:04d}.png"), nrow=4)
