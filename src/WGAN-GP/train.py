@@ -1,5 +1,5 @@
 from network import Generator, Critic
-from globals import DEVICE, Z_DIM, DATA_PATH, C_CHANNELS, G_CHANNELS
+from globals import DEVICE, Z_DIM, DATA_PATH, C_CHANNELS, G_CHANNELS, LAMBDA
 from torch.utils.data import DataLoader
 from dataset import DentalDataset
 from torchvision.utils import save_image
@@ -8,10 +8,10 @@ import torch
 import os
 
 GLR = 1e-4
-CLR = 1e-4
+CLR = 5e-5
 BATCH_SIZE = 16
 EPOCHS = 1000
-CRITIC_STEPS = 3
+CRITIC_STEPS = 2
 SAVE_EVERY = 10
 WEIGHTS_PATH = "weights"
 
@@ -39,7 +39,7 @@ if __name__ == "__main__":
             real = img.to(DEVICE)
             critic_loss, gp, fake_score, real_score = C.train_on_batch(G, CRITIC_STEPS, Z_DIM, real, c_optimizer)
             generator_loss = G.train_on_batch(C, real.size(0), g_optimizer)
-            print(f"EPOCH {e+1}/{EPOCHS} [{i}/{len(dataloader)}] - G: {generator_loss:.2f} - C: {critic_loss:.2f} ({fake_score:.2f} - {real_score:.2f} + 10*{gp:.2f}) ")
+            print(f"EPOCH {e+1}/{EPOCHS} [{i}/{len(dataloader)}] - G: {generator_loss:.2f} - C: {critic_loss:.2f} ({fake_score:.2f} - {real_score:.2f} + {LAMBDA}*{gp:.2f}) ")
 
         print(f"Epoch {e+1} completed")
 

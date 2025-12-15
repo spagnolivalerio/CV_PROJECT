@@ -12,21 +12,24 @@ def gBlock(in_ch, out_ch, norm_layer=nn.BatchNorm2d):
 
 class Generator(nn.Module):
 
-    def __init__(self, z_dim=Z_DIM, start_channels=G_CHANNELS, out_channels=OUT_CHANNELS, device=DEVICE):
+    def __init__(self, z_dim=Z_DIM, base_channels=G_CHANNELS, out_channels=OUT_CHANNELS, device=DEVICE):
         super().__init__()
 
         self.model = nn.Sequential(
-            nn.ConvTranspose2d(z_dim, start_channels, 4, 1, 0, bias=False),  # 1->4
-            nn.BatchNorm2d(start_channels),
+            nn.ConvTranspose2d(z_dim, base_channels * 16, 4, 1, 0, bias=False),
+            nn.BatchNorm2d(base_channels * 16),
             nn.ReLU(inplace=True),
 
-            gBlock(start_channels,       start_channels // 2),   # 4->8
-            gBlock(start_channels // 2,  start_channels // 4),   # 8->16
-            gBlock(start_channels // 4,  start_channels // 8),   # 16->32
-            gBlock(start_channels // 8,  start_channels // 16),  # 32->64
-            gBlock(start_channels // 16,  start_channels // 32),  # 64->128
-
-            nn.ConvTranspose2d(start_channels // 32, out_channels, 4, 2, 1, bias=False), #128->256
+            # 4->8
+            gBlock(base_channels * 16, base_channels * 8),   # 1024->512
+            # 8->16
+            gBlock(base_channels * 8,  base_channels * 4),   # 512->256
+            # 16->32
+            gBlock(base_channels * 4,  base_channels * 2),   # 256->128
+            # 32->64
+            gBlock(base_channels * 2,  base_channels),       # 128->64
+            # 64->128
+            nn.ConvTranspose2d(base_channels, out_channels, 4, 2, 1, bias=False),
             nn.Tanh()
         )
 
@@ -79,19 +82,18 @@ def i_cBlock(in_ch, out_ch):
     )
         
 class Critic(nn.Module):
-    def __init__(self, start_channels = C_CHANNELS, device = DEVICE):
+    def __init__(self, base_channels = C_CHANNELS, device = DEVICE):
         super().__init__()
 
         self.model = nn.Sequential(
-            i_cBlock(1, start_channels), 
-            i_cBlock(start_channels, start_channels*2),                                #128->256
-            i_cBlock(start_channels*2, start_channels*4),                              #256->512
-            i_cBlock(start_channels*4, start_channels*8),                              #512->1024
-            i_cBlock(start_channels*8, start_channels*16),                             #1024->2048
-            i_cBlock(start_channels*16, start_channels*32),                             #1024->2048
-            nn.Conv2d(start_channels*32, 1, 4, 1, 0)                                   #2048->1
-        )
+            cBlock(1, base_channels),                  # 128 -> 64
+            cBlock(base_channels, base_channels*2),    # 64  -> 32
+            cBlock(base_channels*2, base_channels*4),  # 32  -> 16
+            cBlock(base_channels*4, base_channels*8),  # 16  -> 8
+            cBlock(base_channels*8, base_channels*16), # 8  -> 4
 
+            nn.Conv2d(base_channels*16, 1, 4, 1, 0, bias=True)  # 4 -> 1
+        )
         self.device = device
     
     def forward(self, img):

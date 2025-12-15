@@ -8,7 +8,7 @@ from globals import Z_DIM, DEVICE, DATA_ROOT
 OUTPUT_DIR = DATA_ROOT + "/fake"
 NUM_SAMPLES = 600
 
-WEIGHTS_PATH = "weights/G1024_C32_Z256.pt"
+WEIGHTS_PATH = "weights/G64_C64_Z100_L7.pt"
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
