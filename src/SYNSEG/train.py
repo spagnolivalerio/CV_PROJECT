@@ -9,8 +9,8 @@ import numpy as np
 from globals import DATA_ROOT, DEVICE, NUM_CLASSES, BATCH_SIZE
 
 
-TRAIN_IMGS_DIR = f"{DATA_ROOT}/training_set/wgan_xrays"
-TRAIN_MASKS_DIR = f"{DATA_ROOT}/training_set/wgan_masks"
+TRAIN_IMGS_DIR = f"{DATA_ROOT}/training_set/diff_xrays"
+TRAIN_MASKS_DIR = f"{DATA_ROOT}/training_set/diff_masks"
 VAL_IMGS_DIR = f"{DATA_ROOT}/validation_set/xrays"
 VAL_MASKS_DIR = f"{DATA_ROOT}/validation_set/masks"
 
