@@ -4,7 +4,7 @@ DEVICE = "cuda"
 IMAGE_SIZE = 128
 
 LAMBDA = 7
-G_CHANNELS = 64 # Pwoer of the generator
+G_CHANNELS = 64 # Power of the generator
 C_CHANNELS = 64 # Power of the critic
 
 DATA_PATH = "../DIFFUSION/data/train/xrays"

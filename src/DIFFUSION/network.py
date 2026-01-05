@@ -24,7 +24,7 @@ class Diffusion(nn.Module):
         
         # ---------------------------------- #
         # --------- Noise scheduler -------- # 
-        # We create a betas array which cointaines the variance that we have to sum
+        # We create a betas array which cointains the variance that we have to sum
         # at the noise. betas[t] contains the component at timestep t.
         self.betas = torch.linspace(beta_start, beta_end, timesteps, device=device) # Shape [T]
         self.alphas = 1.0 - self.betas

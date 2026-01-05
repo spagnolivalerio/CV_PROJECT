@@ -1,0 +1,3 @@
+https://dentex.grand-challenge.org/data/
+
+https://www.kaggle.com/datasets/humansintheloop/teeth-segmentation-on-dental-x-ray-images

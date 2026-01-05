@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import segmentation_models_pytorch as smp
 from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
 from dataset import DentalDataset
 from globals import DEVICE, NUM_CLASSES, DATA_ROOT
 from utils import tensor_to_image, color_mask, classes_to_palette, make_overlay, plot_results
@@ -83,7 +84,7 @@ with torch.no_grad():
         colored_mask = color_mask(pred, palette)
         colored_gt = color_mask(mask, palette)
         overlay  = make_overlay(original_img, colored_mask)
+        plt.imsave(f"overlay_{i}.png", overlay)
 
         plot_results(original_img, colored_gt, colored_mask, overlay)
         break
-

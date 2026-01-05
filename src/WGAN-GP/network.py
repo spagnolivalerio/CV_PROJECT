@@ -44,7 +44,7 @@ class Generator(nn.Module):
         :param noise: noise with shape [B, z_dim]
         """
         B, C = noise.shape
-        noise = noise.view(B, C, 1, 1)
+        noise = noise.view(B, C, 1, 1) # The latent vector is considered as a 1x1 spatial image with Z_DIM channels
         return self.model(noise)
 
     def sample(self, n_samples):
