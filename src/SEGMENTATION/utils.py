@@ -11,7 +11,7 @@ mask_crop = transforms.Compose([
 
 crop_and_normalize = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Resize(IMAGE_SIZE, interpolation=InterpolationMode.NEAREST),
+    transforms.Resize(IMAGE_SIZE, interpolation=InterpolationMode.BILINEAR),
     transforms.CenterCrop(IMAGE_SIZE),
     transforms.Grayscale(num_output_channels=1),
     transforms.Normalize(mean=[0.5], std=[0.5])

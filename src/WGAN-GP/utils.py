@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 crop = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Resize(IMAGE_SIZE, interpolation=InterpolationMode.NEAREST),
+    transforms.Resize(IMAGE_SIZE, interpolation=InterpolationMode.BILINEAR),
     transforms.CenterCrop(IMAGE_SIZE)
 ])
 
