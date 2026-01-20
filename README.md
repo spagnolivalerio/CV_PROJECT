@@ -130,7 +130,7 @@ Data used for the segmentation task were augmented using two types of augmentati
 > - horizontal flip 
 > - rotation
 
-randomly adopted during training:
+randomly adopted during the training:
 ```
 # Online augmentation
 if self.augment:
@@ -162,8 +162,7 @@ mask_crop = transforms.Compose([
 ```
 
 ### Annotation conversion
-`src/SEGMENTATION/data/training_set/convert.py` converts JSON annotations to PNG masks using
-`classId -> index` mapping from `meta.json` (related to kaggle dataset).
+`src/SEGMENTATION/data/training_set/convert.py` converts JSON annotations to PNG masks using `classId -> index` mapping from `meta.json` (related to kaggle dataset).
 
 ## Evaluation metrics 
 
